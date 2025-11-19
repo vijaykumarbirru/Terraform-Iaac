@@ -1,0 +1,111 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      approve_apply:
+        description: 'Approve Terraform Apply? (yes/no)'
+        required: true
+        default: 'no'
+
+jobs:
+  terraform-validate:
+    runs-on: [self-hosted, Linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform-bvk-final
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: terraform-bvk-final
+
+      - name: Install TFLint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+      - name: Run TFLint
+        run: tflint --init && tflint
+        working-directory: terraform-bvk-final
+
+
+  terraform-plan:
+    runs-on: [self-hosted, Linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform-bvk-final
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        working-directory: terraform-bvk-final
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: terraform-bvk-final/tfplan
+
+  terraform-apply:
+    needs: terraform-plan
+    runs-on: [self-hosted, Linux]
+    if: ${{ github.event.inputs.approve_apply == 'yes' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8.5
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: terraform-bvk-final
+
+
+      - name: Terraform Apply
+        run: terraform apply tfplan
+        working-directory: terraform-bvk-final
