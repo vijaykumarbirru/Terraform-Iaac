@@ -32,11 +32,11 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: terraform-bvk-final
+    
 
       - name: Terraform Validate
         run: terraform validate
-        working-directory: terraform-bvk-final
+     
 
       - name: Install TFLint
         run: |
@@ -44,10 +44,11 @@ jobs:
 
       - name: Run TFLint
         run: tflint --init && tflint
-        working-directory: terraform-bvk-final
+      
 
 
   terraform-plan:
+    needs: terraform-validate
     runs-on: [self-hosted, Linux]
     steps:
       - name: Checkout
@@ -67,17 +68,17 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: terraform-bvk-final
+       
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
-        working-directory: terraform-bvk-final
+      
 
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v3
         with:
           name: tfplan
-          path: terraform-bvk-final/tfplan
+          
 
   terraform-apply:
     needs: terraform-plan
@@ -103,9 +104,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: tfplan
-          path: terraform-bvk-final
+        
 
 
       - name: Terraform Apply
         run: terraform apply tfplan
-        working-directory: terraform-bvk-final
+     
