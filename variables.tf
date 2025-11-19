@@ -90,11 +90,11 @@ variable "k8s_version" {
   default     = "1.30"
 }
 
-variable "gateway_instance_ty" {
-  description = "Node instance type for gateway EKS"
-  type        = string
-  default     = "t3.medium"
-}
+#variable "gateway_instance_ty" {
+# description = "Node instance type for gateway EKS"
+# type        = string
+#  default     = "t3.medium"
+#}
 
 # variable "backend_instance_ty" {
 #   description = "Node instance type for backend EKS"
